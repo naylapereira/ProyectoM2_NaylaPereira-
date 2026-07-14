@@ -16,6 +16,8 @@ paths:
       responses:
         "200":
           description: Lista de autores obtenida correctamente.
+        "500":
+          description: Error interno del servidor.
 
     post:
       summary: Crear un nuevo autor
@@ -70,7 +72,73 @@ paths:
         "404":
           description: Autor no encontrado.
         "500":
-          description: Error interno del servidor.          
+          description: Error interno del servidor.
+
+    put:
+      summary: Actualizar un autor
+      description: Actualiza los datos de un autor existente.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID numérico del autor.
+          schema:
+            type: integer
+            minimum: 1
+          example: 5
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+              properties:
+                name:
+                  type: string
+                  example: Gabriel García Márquez
+                email:
+                  type: string
+                  format: email
+                  example: gabriel.actualizado@email.com
+                bio:
+                  type: string
+                  nullable: true
+                  example: Escritor y periodista colombiano
+      responses:
+        "200":
+          description: Autor actualizado correctamente.
+        "400":
+          description: Datos inválidos o email duplicado.
+        "404":
+          description: Autor no encontrado.
+        "500":
+          description: Error interno del servidor.
+
+    delete:
+      summary: Eliminar un autor
+      description: Elimina un autor según su ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID numérico del autor.
+          schema:
+            type: integer
+            minimum: 1
+          example: 5
+      responses:
+        "204":
+          description: Autor eliminado correctamente.
+        "400":
+          description: El ID enviado no es válido.
+        "404":
+          description: Autor no encontrado.
+        "500":
+          description: Error interno del servidor.
+
 
   /posts:
     get:
@@ -78,7 +146,9 @@ paths:
       description: Devuelve una lista con todas las publicaciones registradas.
       responses:
         "200":
-          description: Lista de publicaciones obtenida correctamente.    
+          description: Lista de publicaciones obtenida correctamente.  
+        "500":
+          description: Error interno del servidor.  
 
     post:
       summary: Crear una nueva publicación
@@ -138,4 +208,94 @@ paths:
         "404":
           description: Publicación no encontrada.
         "500":
-          description: Error interno del servidor.          
+          description: Error interno del servidor.  
+
+    put:
+      summary: Actualizar una publicación
+      description: Actualiza una publicación existente.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID numérico de la publicación.
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - author_id
+                - title
+                - content
+              properties:
+                author_id:
+                  type: integer
+                  example: 5
+                title:
+                  type: string
+                  example: Título actualizado
+                content:
+                  type: string
+                  example: Contenido actualizado de la publicación.
+                published:
+                  type: boolean
+                  example: true
+      responses:
+        "200":
+          description: Publicación actualizada correctamente.
+        "400":
+          description: Datos inválidos.
+        "404":
+          description: Publicación o autor no encontrado.
+        "500":
+          description: Error interno del servidor.
+
+    delete:
+      summary: Eliminar una publicación
+      description: Elimina una publicación según su ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID numérico de la publicación.
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+      responses:
+        "204":
+          description: Publicación eliminada correctamente.
+        "400":
+          description: El ID enviado no es válido.
+        "404":
+          description: Publicación no encontrada.
+        "500":
+          description: Error interno del servidor.
+
+  /posts/author/{authorId}:
+    get:
+      summary: Obtener publicaciones de un autor
+      description: Devuelve todas las publicaciones asociadas al autor indicado.
+      parameters:
+        - name: authorId
+          in: path
+          required: true
+          description: ID numérico del autor.
+          schema:
+            type: integer
+            minimum: 1
+          example: 5
+      responses:
+        "200":
+          description: Publicaciones del autor obtenidas correctamente.
+        "400":
+          description: El ID del autor no es válido.
+        "404":
+          description: Autor no encontrado.
+        "500":
+          description: Error interno del servidor.  

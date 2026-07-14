@@ -1,0 +1,141 @@
+openapi: 3.0.3
+
+info:
+  title: API MiniBlog
+  description: API REST para gestionar autores y publicaciones.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+
+paths:
+  /authors:
+    get:
+      summary: Obtener todos los autores
+      description: Devuelve una lista con todos los autores registrados.
+      responses:
+        "200":
+          description: Lista de autores obtenida correctamente.
+
+    post:
+      summary: Crear un nuevo autor
+      description: Crea un autor con nombre, email y biografía.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+              properties:
+                name:
+                  type: string
+                  example: Gabriel Garcia Marquez
+                email:
+                  type: string
+                  format: email
+                  example: gabriel.marquez@email.com
+                bio:
+                  type: string
+                  nullable: true
+                  example: Escritor colombiano
+      responses:
+        "201":
+          description: Autor creado correctamente.
+        "400":
+          description: Datos inválidos o email duplicado.
+        "500":
+          description: Error interno del servidor.
+
+  /authors/{id}:
+    get:
+      summary: Obtener un autor por ID
+      description: Devuelve los datos del autor correspondiente al ID indicado.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID numérico del autor.
+          schema:
+            type: integer
+            minimum: 1
+          example: 5
+      responses:
+        "200":
+          description: Autor encontrado correctamente.
+        "400":
+          description: El ID enviado no es válido.
+        "404":
+          description: Autor no encontrado.
+        "500":
+          description: Error interno del servidor.          
+
+  /posts:
+    get:
+      summary: Obtener todas las publicaciones
+      description: Devuelve una lista con todas las publicaciones registradas.
+      responses:
+        "200":
+          description: Lista de publicaciones obtenida correctamente.    
+
+    post:
+      summary: Crear una nueva publicación
+      description: Crea una publicación asociada a un autor existente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - author_id
+                - title
+                - content
+              properties:
+                author_id:
+                  type: integer
+                  example: 5
+                title:
+                  type: string
+                  example: Cien años de soledad
+                content:
+                  type: string
+                  example: Contenido de la publicación.
+                published:
+                  type: boolean
+                  default: false
+                  example: true
+      responses:
+        "201":
+          description: Publicación creada correctamente.
+        "400":
+          description: Datos inválidos.
+        "404":
+          description: Autor no encontrado.
+        "500":
+          description: Error interno del servidor.  
+         
+  /posts/{id}:
+    get:
+      summary: Obtener una publicación por ID
+      description: Devuelve la información de una publicación según su ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID numérico de la publicación.
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+      responses:
+        "200":
+          description: Publicación encontrada correctamente.
+        "400":
+          description: El ID enviado no es válido.
+        "404":
+          description: Publicación no encontrada.
+        "500":
+          description: Error interno del servidor.          

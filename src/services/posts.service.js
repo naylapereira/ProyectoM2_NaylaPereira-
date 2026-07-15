@@ -79,24 +79,23 @@ async function createPost(authorId, title, content, published) {
   return result.rows[0];
 }
 
-async function updatePost(id, authorId, title, content, published) {
+async function updatePost(id, fieldsToUpdate) {
+  const fields = [];
+  const values = [];
+
+  Object.entries(fieldsToUpdate).forEach(([field, value]) => {
+    values.push(value);
+    fields.push(`${field} = $${values.length}`);
+  });
+
+  values.push(id);
+
   const query = `
     UPDATE posts
-    SET author_id = $1,
-        title = $2,
-        content = $3,
-        published = $4
-    WHERE id = $5
-    RETURNING
-      id,
-      author_id,
-      title,
-      content,
-      published,
-      created_at
+    SET ${fields.join(", ")}
+    WHERE id = $${values.length}
+    RETURNING id, author_id, title, content, published, created_at
   `;
-
-  const values = [authorId, title, content, published, id];
 
   const result = await pool.query(query, values);
 
@@ -123,5 +122,4 @@ module.exports = {
   getPostsByAuthorId,
   createPost,
   updatePost,
-  deletePost,
 };

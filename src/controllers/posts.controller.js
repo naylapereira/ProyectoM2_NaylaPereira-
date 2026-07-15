@@ -67,6 +67,18 @@ async function getPostsByAuthorId(req, res) {
 
 async function createPost(req, res) {
   try {
+    const allowedFields = ["author_id", "title", "content", "published"];
+    const receivedFields = Object.keys(req.body || {});
+    const invalidFields = receivedFields.filter(
+      (field) => !allowedFields.includes(field)
+    );
+
+    if (invalidFields.length > 0) {
+      return res.status(400).json({
+        error: `Los siguientes campos no son válidos: ${invalidFields.join(", ")}`,
+      });
+    }
+
     const { author_id, title, content, published } = req.body;
 
     const authorId = Number(author_id);
@@ -89,10 +101,7 @@ async function createPost(req, res) {
       });
     }
 
-    if (
-      published !== undefined &&
-      typeof published !== "boolean"
-    ) {
+    if (published !== undefined && typeof published !== "boolean") {
       return res.status(400).json({
         error: "El campo published debe ser true o false",
       });
@@ -108,8 +117,7 @@ async function createPost(req, res) {
 
     const cleanTitle = title.trim();
     const cleanContent = content.trim();
-    const cleanPublished =
-      published === undefined ? false : published;
+    const cleanPublished = published === undefined ? false : published;
 
     const newPost = await postsService.createPost(
       authorId,
@@ -140,50 +148,78 @@ async function updatePost(req, res) {
 
     const { author_id, title, content, published } = req.body;
 
-    const authorId = Number(author_id);
-
-    if (!Number.isInteger(authorId) || authorId <= 0) {
+    if (
+      author_id === undefined &&
+      title === undefined &&
+      content === undefined &&
+      published === undefined
+    ) {
       return res.status(400).json({
-        error: "El ID del autor debe ser un número válido",
+        error: "Debes enviar al menos un campo para actualizar",
       });
     }
 
-    if (typeof title !== "string" || title.trim() === "") {
-      return res.status(400).json({
-        error: "El título es obligatorio",
-      });
+    let authorId;
+
+    if (author_id !== undefined) {
+      authorId = Number(author_id);
+
+      if (!Number.isInteger(authorId) || authorId <= 0) {
+        return res.status(400).json({
+          error: "El ID del autor debe ser un número válido",
+        });
+      }
+
+      const author = await authorsService.getAuthorById(authorId);
+
+      if (!author) {
+        return res.status(404).json({
+          error: "Autor no encontrado",
+        });
+      }
     }
 
-    if (typeof content !== "string" || content.trim() === "") {
-      return res.status(400).json({
-        error: "El contenido es obligatorio",
-      });
+    if (title !== undefined) {
+      if (typeof title !== "string" || title.trim() === "") {
+        return res.status(400).json({
+          error: "El título debe ser un texto válido",
+        });
+      }
     }
 
-    if (typeof published !== "boolean") {
+    if (content !== undefined) {
+      if (typeof content !== "string" || content.trim() === "") {
+        return res.status(400).json({
+          error: "El contenido debe ser un texto válido",
+        });
+      }
+    }
+
+    if (published !== undefined && typeof published !== "boolean") {
       return res.status(400).json({
         error: "El campo published debe ser true o false",
       });
     }
 
-    const author = await authorsService.getAuthorById(authorId);
+    const fieldsToUpdate = {};
 
-    if (!author) {
-      return res.status(404).json({
-        error: "Autor no encontrado",
-      });
+    if (author_id !== undefined) {
+      fieldsToUpdate.author_id = authorId;
     }
 
-    const cleanTitle = title.trim();
-    const cleanContent = content.trim();
+    if (title !== undefined) {
+      fieldsToUpdate.title = title.trim();
+    }
 
-    const updatedPost = await postsService.updatePost(
-      id,
-      authorId,
-      cleanTitle,
-      cleanContent,
-      published
-    );
+    if (content !== undefined) {
+      fieldsToUpdate.content = content.trim();
+    }
+
+    if (published !== undefined) {
+      fieldsToUpdate.published = published;
+    }
+
+    const updatedPost = await postsService.updatePost(id, fieldsToUpdate);
 
     if (!updatedPost) {
       return res.status(404).json({

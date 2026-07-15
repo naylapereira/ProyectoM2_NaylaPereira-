@@ -44,7 +44,34 @@ async function getAuthorById(req, res) {
 
 async function createAuthor(req, res) {
   try {
+
+    const allowedFields = ["name", "email", "bio"];
+    const receivedFields = Object.keys(req.body || {});
+    const invalidFields = receivedFields.filter(
+      (field) => !allowedFields.includes(field)
+    );
+
+    if (invalidFields.length > 0) {
+      return res.status(400).json({
+        error: `Los siguientes campos no son válidos: ${invalidFields.join(", ")}`,
+      });
+    }
     const { name, email, bio } = req.body;
+
+    let cleanEmail;
+
+    if (typeof email === "string" && email.trim() !== "") {
+      cleanEmail = email.trim().toLowerCase();
+
+      const existingAuthor =
+        await authorsService.getAuthorByEmail(cleanEmail);
+
+      if (existingAuthor) {
+        return res.status(400).json({
+          error: "Ya existe un autor con ese email",
+        });
+      }
+    }
 
     if (typeof name !== "string" || name.trim() === "") {
       return res.status(400).json({
@@ -58,16 +85,15 @@ async function createAuthor(req, res) {
       });
     }
 
-    const emailFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailFormat.test(email.trim())) {
+    const emailFormat =
+    /^[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    if (!emailFormat.test(cleanEmail)) {
       return res.status(400).json({
         error: "El email no tiene un formato válido",
       });
     }
 
     const cleanName = name.trim();
-    const cleanEmail = email.trim().toLowerCase();
 
     let cleanBio = null;
 
@@ -109,40 +135,63 @@ async function updateAuthor(req, res) {
 
     const { name, email, bio } = req.body;
 
-    if (typeof name !== "string" || name.trim() === "") {
+    if (
+      name === undefined &&
+      email === undefined &&
+      bio === undefined
+    ) {
       return res.status(400).json({
-        error: "El nombre es obligatorio",
+        error: "Debes enviar al menos un campo para actualizar",
       });
     }
 
-    if (typeof email !== "string" || email.trim() === "") {
-      return res.status(400).json({
-        error: "El email es obligatorio",
-      });
+    const fieldsToUpdate = {};
+
+    if (name !== undefined) {
+      if (typeof name !== "string" || name.trim() === "") {
+        return res.status(400).json({
+          error: "El nombre debe ser un texto válido",
+        });
+      }
+
+      fieldsToUpdate.name = name.trim();
     }
 
-    const emailFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (email !== undefined) {
+      if (typeof email !== "string" || email.trim() === "") {
+        return res.status(400).json({
+          error: "El email debe ser un texto válido",
+        });
+      }
 
-    if (!emailFormat.test(email.trim())) {
-      return res.status(400).json({
-        error: "El email no tiene un formato válido",
-      });
+      const cleanEmail = email.trim().toLowerCase();
+      const emailFormat =
+      /^[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+      if (!emailFormat.test(cleanEmail)) {
+        return res.status(400).json({
+          error: "El email no tiene un formato válido",
+        });
+      }
+
+      fieldsToUpdate.email = cleanEmail;
     }
 
-    const cleanName = name.trim();
-    const cleanEmail = email.trim().toLowerCase();
-
-    let cleanBio = null;
-
-    if (typeof bio === "string" && bio.trim() !== "") {
-      cleanBio = bio.trim();
+    if (bio !== undefined) {
+      if (bio === null) {
+        fieldsToUpdate.bio = null;
+      } else if (typeof bio !== "string") {
+        return res.status(400).json({
+          error: "La biografía debe ser un texto o null",
+        });
+      } else {
+        fieldsToUpdate.bio =
+          bio.trim() === "" ? null : bio.trim();
+      }
     }
 
     const updatedAuthor = await authorsService.updateAuthor(
       id,
-      cleanName,
-      cleanEmail,
-      cleanBio
+      fieldsToUpdate
     );
 
     if (!updatedAuthor) {
@@ -152,9 +201,7 @@ async function updateAuthor(req, res) {
     }
 
     return res.status(200).json(updatedAuthor);
-
   } catch (error) {
-
     if (error.code === "23505") {
       return res.status(400).json({
         error: "Ya existe un autor con ese email",

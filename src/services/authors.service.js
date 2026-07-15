@@ -40,17 +40,35 @@ async function createAuthor(name, email, bio) {
   return result.rows[0];
 }
 
-async function updateAuthor(id, name, email, bio) {
+async function getAuthorByEmail(email) {
   const query = `
-    UPDATE authors
-    SET name = $1,
-        email = $2,
-        bio = $3
-    WHERE id = $4
-    RETURNING id, name, email, bio, created_at
+    SELECT id, name, email, bio, created_at
+    FROM authors
+    WHERE email = $1
   `;
 
-  const values = [name, email, bio, id];
+  const result = await pool.query(query, [email]);
+
+  return result.rows[0];
+}
+
+async function updateAuthor(id, fieldsToUpdate) {
+  const fields = [];
+  const values = [];
+
+  Object.entries(fieldsToUpdate).forEach(([field, value]) => {
+    values.push(value);
+    fields.push(`${field} = $${values.length}`);
+  });
+
+  values.push(id);
+
+  const query = `
+    UPDATE authors
+    SET ${fields.join(", ")}
+    WHERE id = $${values.length}
+    RETURNING id, name, email, bio, created_at
+  `;
 
   const result = await pool.query(query, values);
 
@@ -77,4 +95,6 @@ module.exports = {
   createAuthor,
   updateAuthor,
   deleteAuthor,
+  getAuthorByEmail,
+  
 };
